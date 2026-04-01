@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Carteira</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07101f;--bg2:#0b1628;--bg3:#101e35;--bg4:#162540;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.11);
+  --gold:#f5a623;--green:#10b981;--blue:#60a5fa;--red:#f87171;
+  --teal:#2dd4bf;--purple:#a78bfa;--amber:#fbbf24;--coral:#fb7185;
+  --text:#dde4f0;--text2:#7c8fa8;--text3:#4a5a6e;
+  --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;line-height:1.5}
+.page{max-width:1020px;margin:0 auto;padding:24px 20px 60px}
+
+/* Header */
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.brand{font-size:13px;font-weight:600;color:#fff;letter-spacing:.02em}
+.brand-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.btn{background:transparent;border:1px solid var(--border2);color:var(--text2);font-family:var(--font);font-size:12px;padding:7px 14px;border-radius:7px;cursor:pointer;transition:all .15s}
+.btn:hover{border-color:var(--gold);color:var(--gold)}
+
+/* Params bar */
+.params-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:12px}
+.pf label{display:block;font-size:10px;color:var(--text3);margin-bottom:3px;text-transform:uppercase;letter-spacing:.07em;font-weight:600}
+.pf input,.pf select{width:100%;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 10px;outline:none;transition:border-color .15s;-moz-appearance:textfield;appearance:textfield}
+.pf input::-webkit-outer-spin-button,.pf input::-webkit-inner-spin-button{-webkit-appearance:none}
+.pf input:focus,.pf select:focus{border-color:var(--gold)}
+.prazo-row{display:grid;grid-template-columns:1fr auto;gap:6px}
+.prazo-disp{font-size:10px;color:var(--text3);margin-top:3px}
+.prazo-disp span{font-family:var(--mono);color:var(--text2)}
+
+/* Accordion */
+.acc{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:14px;overflow:hidden}
+.acc-hd{display:flex;align-items:center;justify-content:space-between;padding:11px 16px;cursor:pointer;user-select:none}
+.acc-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text2)}
+.acc-arrow{font-size:10px;color:var(--text3);transition:transform .2s}
+.acc-arrow.open{transform:rotate(180deg)}
+.acc-body{padding:0 16px 14px;display:none}
+.acc-body.open{display:block}
+.taxas-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+
+/* Section */
+.section-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sec-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}
+.btn-sm{background:transparent;border:1px solid var(--border);color:var(--text3);font-family:var(--font);font-size:11px;padding:4px 10px;border-radius:5px;cursor:pointer;transition:all .15s}
+.btn-sm:hover{border-color:var(--gold);color:var(--gold)}
+.btn-row{display:flex;gap:6px}
+
+/* Table */
+.tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;overflow:auto;margin-bottom:14px}
+table{width:100%;border-collapse:collapse;min-width:540px}
+thead th{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);padding:10px 12px;text-align:center;border-bottom:1px solid var(--border)}
+thead th:first-child{text-align:left}
+tbody tr{border-bottom:1px solid var(--border)}
+tbody tr:last-child{border-bottom:none}
+tbody tr.cat-hd{background:var(--bg3)}
+tbody tr.cat-hd td{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);padding:5px 12px}
+td{padding:9px 12px;vertical-align:middle}
+td.asset-name{font-size:13px;font-weight:500;min-width:140px}
+
+/* Badges */
+.badge{font-size:10px;font-weight:500;padding:2px 7px;border-radius:4px;display:inline-block;white-space:nowrap}
+.b-bancario{background:rgba(96,165,250,0.13);color:#60a5fa}
+.b-credpriv{background:rgba(251,191,36,0.13);color:#fbbf24}
+.b-publico{background:rgba(16,185,129,0.13);color:#34d399}
+.b-fundos{background:rgba(167,139,250,0.13);color:#a78bfa}
+.b-previdencia{background:rgba(251,113,133,0.13);color:#fb7185}
+.b-pre{background:rgba(45,212,191,0.13);color:#2dd4bf}
+.b-pos{background:rgba(100,116,139,0.13);color:#7c8fa8}
+
+/* Alloc inputs */
+.alloc-cell{text-align:center}
+.alloc-wrap-inp{display:flex;align-items:center;gap:3px;justify-content:center}
+.alloc-inp{width:60px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:12px;padding:5px 6px;text-align:center;outline:none;transition:border-color .15s;-moz-appearance:textfield;appearance:textfield}
+.alloc-inp::-webkit-outer-spin-button,.alloc-inp::-webkit-inner-spin-button{-webkit-appearance:none}
+.alloc-inp:focus{border-color:var(--gold)}
+.alloc-inp.active{border-color:rgba(245,166,35,.4)}
+.pct-sym{font-size:11px;color:var(--text3)}
+.bar-wrap{height:3px;background:var(--bg4);border-radius:2px;margin-top:4px;width:60px;margin-left:auto;margin-right:auto}
+.bar-fill{height:100%;border-radius:2px;transition:width .25s}
+.bar-a{background:var(--blue)}
+.bar-p{background:var(--gold)}
+
+/* Total row */
+tr.total-row td{padding:8px 12px;border-top:1px solid var(--border2);font-size:12px;font-weight:600}
+.total-ok{color:var(--green)}
+.total-err{color:var(--red)}
+
+/* Asset note */
+.asset-note{font-size:10px;color:var(--text3);margin-top:1px;font-weight:400}
+
+/* Results sandwich */
+.results-grid{display:grid;grid-template-columns:1fr 180px 1fr;gap:10px;margin-bottom:12px;align-items:center}
+.res-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 18px}
+.res-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:8px}
+.res-vl{font-family:var(--mono);font-size:19px;font-weight:500;color:var(--text);margin-bottom:3px}
+.res-raa{font-size:12px;color:var(--text2);margin-bottom:2px}
+.res-ir{font-size:11px;color:var(--text3)}
+.delta-card{background:var(--bg2);border:1px solid rgba(245,166,35,.35);border-radius:10px;padding:16px 18px;text-align:center}
+.delta-card.neg{border-color:rgba(248,113,113,.3)}
+.delta-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:rgba(245,166,35,.65);margin-bottom:8px}
+.delta-card.neg .delta-label{color:rgba(248,113,113,.65)}
+.delta-vl{font-family:var(--mono);font-size:21px;font-weight:600;color:var(--gold);margin-bottom:3px}
+.delta-card.neg .delta-vl{color:var(--red)}
+.delta-raa{font-size:12px;color:rgba(245,166,35,.55)}
+.delta-card.neg .delta-raa{color:rgba(248,113,113,.55)}
+
+/* Phrase */
+.phrase{background:var(--bg3);border-left:2px solid var(--gold);border-radius:0 8px 8px 0;padding:11px 15px;font-size:13px;color:var(--text2);line-height:1.65;margin-bottom:12px}
+.phrase.neg{border-left-color:var(--text3)}
+.phrase strong{color:var(--text);font-weight:500}
+
+/* Breakdown */
+.bk-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.bk-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.bk-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:11px}
+.bk-row{display:flex;align-items:center;gap:8px;margin-bottom:9px}
+.bk-row:last-of-type{margin-bottom:0}
+.bk-label{font-size:12px;color:var(--text2);width:112px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bk-bars{flex:1;display:flex;flex-direction:column;gap:3px}
+.bk-bw{height:5px;background:var(--bg4);border-radius:3px}
+.bk-bf{height:100%;border-radius:3px;transition:width .3s;min-width:1px}
+.bk-pct{font-family:var(--mono);font-size:11px;min-width:36px;display:flex;flex-direction:column;gap:3px;text-align:right}
+.bk-leg{display:flex;gap:14px;margin-top:10px;font-size:10px;color:var(--text3)}
+.bk-leg span:last-child{color:var(--text)}
+
+/* Footer */
+.footer{font-size:11px;color:var(--text3);line-height:1.6}
+
+/* Print */
+@media print{
+  body{background:#fff!important;color:#111!important}
+  .btn,.btn-sm,.acc,.btn-row{display:none!important}
+  .params-bar{display:none!important}
+  .tbl-wrap{border-color:#e5e7eb!important}
+  thead th{color:#6b7280!important}
+  td{color:#111!important}
+  tr.cat-hd{background:#f9fafb!important}
+  .res-card,.delta-card,.bk-card{background:#fafafa!important;border-color:#e5e7eb!important}
+  .res-vl{color:#111!important}
+  .res-raa{color:#374151!important}
+  .res-ir{color:#9ca3af!important}
+  .delta-card{border-color:#d97706!important}
+  .delta-vl{color:#7c6010!important}
+  .delta-label,.delta-raa{color:#b45309!important}
+  .phrase{background:#fffbeb!important;border-color:#d97706!important}
+  .bk-card{background:#fafafa!important}
+  .footer{color:#9ca3af!important}
+}
+
+@media(max-width:700px){
+  .results-grid{grid-template-columns:1fr;grid-template-rows:auto auto auto}
+  .bk-grid{grid-template-columns:1fr}
+  .delta-card{min-width:unset}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="header">
+    <div>
+      <div class="brand">Simulador de Carteira</div>
+      <div class="brand-sub">Assessor — análise de realocação</div>
+    </div>
+    <button class="btn" onclick="window.print()">Imprimir / PDF</button>
+  </div>
+
+  <div class="params-bar">
+    <div class="pf"><label>Capital (R$)</label><input type="number" id="cap" value="100000" step="1000"></div>
+    <div class="pf">
+      <label>Prazo</label>
+      <div class="prazo-row">
+        <input type="number" id="prazo-val" value="2" step="1" min="1">
+        <select id="prazo-unit">
+          <option value="anos">Anos</option>
+          <option value="meses">Meses</option>
+          <option value="du">Dias úteis</option>
+          <option value="dc">Dias corridos</option>
+        </select>
+      </div>
+      <div class="prazo-disp"><span id="du-disp">504</span> DU / <span id="dc-disp">730</span> DC</div>
+    </div>
+    <div class="pf"><label>CDI (% a.a.)</label><input type="number" id="cdi" value="14.25" step="0.05"></div>
+    <div class="pf"><label>Selic (% a.a.)</label><input type="number" id="selic" value="14.50" step="0.05"></div>
+    <div class="pf"><label>IPCA (% a.a.)</label><input type="number" id="ipca" value="5.00" step="0.05"></div>
+  </div>
+
+  <div class="acc">
+    <div class="acc-hd" onclick="toggleAcc()">
+      <span class="acc-title">Taxas dos ativos</span>
+      <span class="acc-arrow" id="acc-arrow">▼</span>
+    </div>
+    <div class="acc-body" id="acc-body">
+      <div class="taxas-grid">
+        <div class="pf"><label>CDB (% CDI)</label><input type="number" id="pctCDB" value="99" step="0.5"></div>
+        <div class="pf"><label>LCI (% CDI)</label><input type="number" id="pctLCI" value="90" step="0.5"></div>
+        <div class="pf"><label>Debênture (IPCA + %)</label><input type="number" id="sprDeb" value="8.00" step="0.05"></div>
+        <div class="pf"><label>Tesouro IPCA+ (IPCA + %)</label><input type="number" id="sprTIPCA" value="5.50" step="0.05"></div>
+        <div class="pf"><label>Tesouro Pré (% a.a.)</label><input type="number" id="txTPre" value="14.00" step="0.05"></div>
+        <div class="pf"><label>Tesouro Selic (% Selic)</label><input type="number" id="pctTSelic" value="100" step="0.5"></div>
+        <div class="pf"><label>Fundo RF LP (% CDI)</label><input type="number" id="pctRFLP" value="100" step="0.5"></div>
+        <div class="pf"><label>Fundo MM (% CDI)</label><input type="number" id="pctMM" value="90" step="0.5"></div>
+        <div class="pf"><label>PGBL (% CDI)</label><input type="number" id="pctPGBL" value="100" step="0.5"></div>
+        <div class="pf"><label>VGBL (% CDI)</label><input type="number" id="pctVGBL" value="100" step="0.5"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-hd">
+    <div class="sec-title">Alocação da carteira</div>
+    <div class="btn-row">
+      <button class="btn-sm" onclick="normalize('a')">Normalizar atual</button>
+      <button class="btn-sm" onclick="normalize('p')">Normalizar proposta</button>
+      <button class="btn-sm" onclick="copyAtoP()">Copiar atual → proposta</button>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:left">Ativo</th>
+          <th>Tipo</th>
+          <th>% Atual <span id="total-a-hd" style="font-size:9px"></span></th>
+          <th>% Proposta <span id="total-p-hd" style="font-size:9px"></span></th>
+        </tr>
+      </thead>
+      <tbody id="alloc-body"></tbody>
+    </table>
+  </div>
+
+  <div class="results-grid">
+    <div class="res-card">
+      <div class="res-label">Carteira atual</div>
+      <div class="res-vl" id="r-a-vl">—</div>
+      <div class="res-raa" id="r-a-raa">—</div>
+      <div class="res-ir" id="r-a-ir">—</div>
+    </div>
+    <div class="delta-card" id="delta-card">
+      <div class="delta-label">Ganho adicional</div>
+      <div class="delta-vl" id="r-d-vl">—</div>
+      <div class="delta-raa" id="r-d-raa">—</div>
+    </div>
+    <div class="res-card">
+      <div class="res-label">Carteira proposta</div>
+      <div class="res-vl" id="r-p-vl">—</div>
+      <div class="res-raa" id="r-p-raa">—</div>
+      <div class="res-ir" id="r-p-ir">—</div>
+    </div>
+  </div>
+
+  <div class="phrase" id="phrase-box"><span id="phrase-txt"></span></div>
+
+  <div class="bk-grid">
+    <div class="bk-card">
+      <div class="bk-title">Diversificação por categoria</div>
+      <div id="bk-cat"></div>
+    </div>
+    <div class="bk-card">
+      <div class="bk-title">Pré-fixado vs Pós-fixado</div>
+      <div id="bk-tipo"></div>
+    </div>
+  </div>
+
+  <div class="footer" id="footer"></div>
+
+</div>
+
+<script>
+const ASSETS=[
+  {id:'cdb',   label:'CDB',               note:'',                            cat:'bancario',   tipo:'pos',isento:false,cc:false,pgbl:false, taxFn:v=>v.cdi*v.pctCDB},
+  {id:'lci',   label:'LCI',               note:'Isento IR',                   cat:'bancario',   tipo:'pos',isento:true, cc:false,pgbl:false, taxFn:v=>v.cdi*v.pctLCI},
+  {id:'deb',   label:'Debênture Incent.', note:'Isento IR · base 365 DC',     cat:'credpriv',   tipo:'pos',isento:true, cc:false,pgbl:false, taxFn:v=>(1+v.ipca)*(1+v.sprDeb)-1,   baseDC:true},
+  {id:'tipca', label:'Tesouro IPCA+',     note:'',                            cat:'publico',    tipo:'pos',isento:false,cc:false,pgbl:false, taxFn:v=>(1+v.ipca)*(1+v.sprTIPCA)-1},
+  {id:'tpre',  label:'Tesouro Pré',       note:'',                            cat:'publico',    tipo:'pre',isento:false,cc:false,pgbl:false, taxFn:v=>v.txTPre},
+  {id:'tselic',label:'Tesouro Selic',     note:'',                            cat:'publico',    tipo:'pos',isento:false,cc:false,pgbl:false, taxFn:v=>v.selic*v.pctTSelic},
+  {id:'rflp',  label:'Fundo RF LP',       note:'Come-cotas 15% (mai/nov)',    cat:'fundos',     tipo:'pos',isento:false,cc:true, pgbl:false, taxFn:v=>v.cdi*v.pctRFLP},
+  {id:'mm',    label:'Fundo MM',          note:'Come-cotas 15% (mai/nov)',    cat:'fundos',     tipo:'pos',isento:false,cc:true, pgbl:false, taxFn:v=>v.cdi*v.pctMM},
+  {id:'pgbl',  label:'PGBL',              note:'IR sobre valor total no resgate', cat:'previdencia',tipo:'pos',isento:false,cc:false,pgbl:true,  taxFn:v=>v.cdi*v.pctPGBL},
+  {id:'vgbl',  label:'VGBL',              note:'IR apenas sobre o ganho',     cat:'previdencia',tipo:'pos',isento:false,cc:false,pgbl:false, taxFn:v=>v.cdi*v.pctVGBL},
+];
+const CAT={
+  bancario:  {label:'Renda Fixa Bancária', short:'Bancário',   cls:'b-bancario',  color:'#60a5fa'},
+  credpriv:  {label:'Crédito Privado',     short:'Créd. Priv.',cls:'b-credpriv',  color:'#fbbf24'},
+  publico:   {label:'Títulos Públicos',    short:'Público',    cls:'b-publico',   color:'#34d399'},
+  fundos:    {label:'Fundos',              short:'Fundos',     cls:'b-fundos',    color:'#a78bfa'},
+  previdencia:{label:'Previdência',        short:'Previd.',    cls:'b-previdencia',color:'#fb7185'},
+};
+
+const fBRL=n=>'R$\u00a0'+n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fPct=n=>(n*100).toFixed(2)+'%';
+const fPctS=n=>(n*100).toFixed(1)+'%';
+
+function getAliq(dc){return dc<=180?.225:dc<=360?.20:dc<=720?.175:.15}
+
+function getPrazo(){
+  const v=parseFloat(document.getElementById('prazo-val').value)||1;
+  const u=document.getElementById('prazo-unit').value;
+  let du,dc;
+  if(u==='anos')     {du=Math.round(v*252);dc=Math.round(v*365)}
+  else if(u==='meses'){du=Math.round(v*21); dc=Math.round(v*30.4375)}
+  else if(u==='du')   {du=Math.round(v);    dc=Math.round(v*365/252)}
+  else               {dc=Math.round(v);    du=Math.round(v*252/365)}
+  document.getElementById('du-disp').textContent=du;
+  document.getElementById('dc-disp').textContent=dc;
+  return{du,dc};
+}
+
+function getVars(){
+  const g=id=>parseFloat(document.getElementById(id).value)/100;
+  return{
+    cdi:g('cdi'),selic:g('selic'),ipca:g('ipca'),
+    pctCDB:g('pctCDB'),pctLCI:g('pctLCI'),sprDeb:g('sprDeb'),
+    sprTIPCA:g('sprTIPCA'),txTPre:g('txTPre'),pctTSelic:g('pctTSelic'),
+    pctRFLP:g('pctRFLP'),pctMM:g('pctMM'),pctPGBL:g('pctPGBL'),pctVGBL:g('pctVGBL'),
+  };
+}
+
+function calcFundo(cap,du,dc,taxa){
+  const nCC=Math.floor(du/126);
+  const aliq=getAliq(dc);
+  if(nCC===0){const vb=cap*Math.pow(1+taxa,du/252);const ir=(vb-cap)*aliq;return{vb,ir,vl:vb-ir}}
+  let capital=cap,totalCC=0;
+  for(let i=0;i<nCC;i++){
+    const vbP=capital*Math.pow(1+taxa,126/252);
+    const cc=(vbP-capital)*.15;totalCC+=cc;capital=vbP-cc;
+  }
+  const res=du-nCC*126;
+  const vbF=res>0?capital*Math.pow(1+taxa,res/252):capital;
+  const irC=Math.max(0,(vbF-cap)*aliq-totalCC);
+  return{vb:vbF,ir:totalCC+irC,vl:vbF-irC};
+}
+
+function calcAsset(a,cap,du,dc,vars){
+  if(cap===0)return{vb:0,ir:0,vl:0};
+  const taxa=a.taxFn(vars);
+  const aliq=getAliq(dc);
+  if(a.cc)return calcFundo(cap,du,dc,taxa);
+  const base=a.baseDC?dc/365:du/252;
+  const vb=cap*Math.pow(1+taxa,base);
+  if(a.isento)return{vb,ir:0,vl:vb};
+  if(a.pgbl){const ir=vb*aliq;return{vb,ir,vl:vb-ir}}
+  const ir=(vb-cap)*aliq;
+  return{vb,ir,vl:vb-ir};
+}
+
+function calcPortfolio(alloc,cap,du,dc,vars){
+  let tVB=0,tIR=0,tVL=0;
+  for(const a of ASSETS){
+    const pct=(alloc[a.id]||0)/100;
+    const r=calcAsset(a,cap*pct,du,dc,vars);
+    tVB+=r.vb;tIR+=r.ir;tVL+=r.vl;
+  }
+  return{vb:tVB,ir:tIR,vl:tVL};
+}
+
+function getAlloc(s){
+  const o={};
+  for(const a of ASSETS)o[a.id]=parseFloat(document.getElementById('ai-'+s+'-'+a.id).value)||0;
+  return o;
+}
+
+function getTotal(alloc){return Object.values(alloc).reduce((s,v)=>s+v,0)}
+
+function updateBarsAndTotals(s){
+  const alloc=getAlloc(s);
+  const total=getTotal(alloc);
+  const ok=Math.abs(total-100)<0.1;
+  const hd=document.getElementById('total-'+s+'-hd');
+  if(hd){hd.textContent=total.toFixed(0)+'%';hd.style.color=ok?'var(--green)':'var(--red)'}
+  const tr=document.getElementById('total-row-'+s);
+  if(tr){tr.textContent=total.toFixed(1)+'%';tr.className=ok?'total-ok':'total-err'}
+  for(const a of ASSETS){
+    const bar=document.getElementById('bar-'+s+'-'+a.id);
+    const inp=document.getElementById('ai-'+s+'-'+a.id);
+    if(bar)bar.style.width=Math.min(alloc[a.id]||0,100)+'%';
+    if(inp){inp.classList.toggle('active',(alloc[a.id]||0)>0)}
+  }
+}
+
+function normalize(s){
+  const alloc=getAlloc(s);
+  const total=getTotal(alloc);
+  if(total===0)return;
+  for(const a of ASSETS){
+    document.getElementById('ai-'+s+'-'+a.id).value=((alloc[a.id]||0)*100/total).toFixed(1);
+  }
+  calc();
+}
+
+function copyAtoP(){
+  for(const a of ASSETS){
+    const vA=document.getElementById('ai-a-'+a.id).value;
+    document.getElementById('ai-p-'+a.id).value=vA;
+  }
+  calc();
+}
+
+function genPhrase(allocA,allocP,cap,delta,du,vars){
+  const pv=parseFloat(document.getElementById('prazo-val').value)||1;
+  const pu=document.getElementById('prazo-unit').value;
+  const pStr=pu==='anos'?(pv===1?'1 ano':pv+' anos'):pu==='meses'?(pv===1?'1 mês':pv+' meses'):du+' dias úteis';
+  if(Math.abs(delta)<0.5)return{txt:'Os dois cenários têm retorno equivalente para esse prazo.',neg:false};
+  if(delta<0)return{txt:`A carteira atual está mais otimizada para esse prazo. A proposta gera <strong>${fBRL(Math.abs(delta))}</strong> a menos no período.`,neg:true};
+  let maxDec={id:null,d:0},maxInc={id:null,d:0};
+  for(const a of ASSETS){
+    const diff=(allocP[a.id]||0)-(allocA[a.id]||0);
+    if(diff<maxDec.d)maxDec={id:a.id,d:diff};
+    if(diff>maxInc.d)maxInc={id:a.id,d:diff};
+  }
+  const from=ASSETS.find(a=>a.id===maxDec.id);
+  const to=ASSETS.find(a=>a.id===maxInc.id);
+  if(from&&to&&from.id!==to.id){
+    const mov=cap*Math.abs(maxDec.d)/100;
+    return{txt:`Movendo <strong>${fBRL(mov)}</strong> de ${from.label} para ${to.label}, o retorno líquido aumenta <strong>${fBRL(delta)}</strong> ao final de ${pStr} — mantendo o mesmo capital investido.`,neg:false};
+  }
+  return{txt:`Com a carteira proposta, o retorno líquido projetado aumenta <strong>${fBRL(delta)}</strong> ao final de ${pStr}.`,neg:false};
+}
+
+function renderBreakdown(allocA,allocP){
+  const cats=Object.keys(CAT);
+  let catHtml='';
+  for(const c of cats){
+    const pA=ASSETS.filter(a=>a.cat===c).reduce((s,a)=>s+(allocA[a.id]||0),0);
+    const pP=ASSETS.filter(a=>a.cat===c).reduce((s,a)=>s+(allocP[a.id]||0),0);
+    if(pA===0&&pP===0)continue;
+    catHtml+=`<div class="bk-row">
+      <div class="bk-label">${CAT[c].short}</div>
+      <div class="bk-bars">
+        <div class="bk-bw"><div class="bk-bf" style="width:${pA}%;background:${CAT[c].color};opacity:.45"></div></div>
+        <div class="bk-bw"><div class="bk-bf" style="width:${pP}%;background:${CAT[c].color}"></div></div>
+      </div>
+      <div class="bk-pct">
+        <span style="color:var(--text3)">${pA.toFixed(0)}%</span>
+        <span>${pP.toFixed(0)}%</span>
+      </div>
+    </div>`;
+  }
+  catHtml+=`<div class="bk-leg"><span>▬ Atual</span><span>▬ Proposta</span></div>`;
+  document.getElementById('bk-cat').innerHTML=catHtml;
+
+  const preA=ASSETS.filter(a=>a.tipo==='pre').reduce((s,a)=>s+(allocA[a.id]||0),0);
+  const preP=ASSETS.filter(a=>a.tipo==='pre').reduce((s,a)=>s+(allocP[a.id]||0),0);
+  const posA=100-preA,posP=100-preP;
+  const tipoHtml=`
+    <div class="bk-row">
+      <div class="bk-label">Pré-fixado</div>
+      <div class="bk-bars">
+        <div class="bk-bw"><div class="bk-bf" style="width:${preA}%;background:#2dd4bf;opacity:.45"></div></div>
+        <div class="bk-bw"><div class="bk-bf" style="width:${preP}%;background:#2dd4bf"></div></div>
+      </div>
+      <div class="bk-pct">
+        <span style="color:var(--text3)">${preA.toFixed(0)}%</span>
+        <span>${preP.toFixed(0)}%</span>
+      </div>
+    </div>
+    <div class="bk-row">
+      <div class="bk-label">Pós-fixado</div>
+      <div class="bk-bars">
+        <div class="bk-bw"><div class="bk-bf" style="width:${posA}%;background:#60a5fa;opacity:.45"></div></div>
+        <div class="bk-bw"><div class="bk-bf" style="width:${posP}%;background:#60a5fa"></div></div>
+      </div>
+      <div class="bk-pct">
+        <span style="color:var(--text3)">${posA.toFixed(0)}%</span>
+        <span>${posP.toFixed(0)}%</span>
+      </div>
+    </div>
+    <div class="bk-leg"><span>▬ Atual</span><span>▬ Proposta</span></div>`;
+  document.getElementById('bk-tipo').innerHTML=tipoHtml;
+}
+
+function calc(){
+  const cap=parseFloat(document.getElementById('cap').value)||0;
+  const{du,dc}=getPrazo();
+  const vars=getVars();
+  const allocA=getAlloc('a'),allocP=getAlloc('p');
+  updateBarsAndTotals('a');updateBarsAndTotals('p');
+
+  const resA=calcPortfolio(allocA,cap,du,dc,vars);
+  const resP=calcPortfolio(allocP,cap,du,dc,vars);
+  const delta=resP.vl-resA.vl;
+  const raaA=cap>0?Math.pow(resA.vl/cap,252/du)-1:0;
+  const raaP=cap>0?Math.pow(resP.vl/cap,252/du)-1:0;
+  const raaD=raaP-raaA;
+
+  document.getElementById('r-a-vl').textContent=fBRL(resA.vl);
+  document.getElementById('r-a-raa').textContent=fPct(raaA)+' líq. a.a.';
+  document.getElementById('r-a-ir').textContent='IR/CC deduzido: '+fBRL(resA.ir);
+  document.getElementById('r-p-vl').textContent=fBRL(resP.vl);
+  document.getElementById('r-p-raa').textContent=fPct(raaP)+' líq. a.a.';
+  document.getElementById('r-p-ir').textContent='IR/CC deduzido: '+fBRL(resP.ir);
+
+  const pref=delta>=0?'+':'';
+  document.getElementById('r-d-vl').textContent=pref+fBRL(delta);
+  document.getElementById('r-d-raa').textContent=pref+fPct(raaD)+' p.p. a.a.';
+  document.getElementById('delta-card').className='delta-card'+(delta<0?' neg':'');
+
+  const ph=genPhrase(allocA,allocP,cap,delta,du,vars);
+  document.getElementById('phrase-txt').innerHTML=ph.txt;
+  document.getElementById('phrase-box').className='phrase'+(ph.neg?' neg':'');
+
+  renderBreakdown(allocA,allocP);
+
+  const aliq=getAliq(dc);
+  document.getElementById('footer').textContent=
+    `Capital: ${fBRL(cap)} · ${du} DU / ${dc} DC · CDI ${fPctS(vars.cdi)} · IPCA ${fPctS(vars.ipca)} · IR aplicável: ${fPctS(aliq)} · PGBL: IR incide sobre valor total no resgate. VGBL: IR apenas sobre o ganho. Sem come-cotas na previdência. Não constitui recomendação de investimento.`;
+}
+
+function buildTable(){
+  const cats=[...new Set(ASSETS.map(a=>a.cat))];
+  let html='';
+  for(const c of cats){
+    const assets=ASSETS.filter(a=>a.cat===c);
+    html+=`<tr class="cat-hd"><td colspan="4">${CAT[c].label}</td></tr>`;
+    for(const a of assets){
+      const tipoBadge=a.tipo==='pre'?`<span class="badge b-pre">Pré</span>`:`<span class="badge b-pos">Pós</span>`;
+      html+=`<tr>
+        <td class="asset-name">${a.label}${a.note?`<div class="asset-note">${a.note}</div>`:''}
+        </td>
+        <td style="text-align:center">${tipoBadge}</td>
+        <td class="alloc-cell">
+          <div class="alloc-wrap-inp">
+            <input class="alloc-inp" type="number" id="ai-a-${a.id}" value="0" min="0" max="100" step="1">
+            <span class="pct-sym">%</span>
+          </div>
+          <div class="bar-wrap"><div class="bar-fill bar-a" id="bar-a-${a.id}" style="width:0%"></div></div>
+        </td>
+        <td class="alloc-cell">
+          <div class="alloc-wrap-inp">
+            <input class="alloc-inp" type="number" id="ai-p-${a.id}" value="0" min="0" max="100" step="1">
+            <span class="pct-sym">%</span>
+          </div>
+          <div class="bar-wrap"><div class="bar-fill bar-p" id="bar-p-${a.id}" style="width:0%"></div></div>
+        </td>
+      </tr>`;
+    }
+  }
+  html+=`<tr class="total-row">
+    <td colspan="2" style="color:var(--text2);font-size:11px;font-weight:400">Total alocado</td>
+    <td class="alloc-cell"><span id="total-row-a">0%</span></td>
+    <td class="alloc-cell"><span id="total-row-p">0%</span></td>
+  </tr>`;
+  document.getElementById('alloc-body').innerHTML=html;
+  document.querySelectorAll('.alloc-inp').forEach(el=>el.addEventListener('input',calc));
+}
+
+function toggleAcc(){
+  const b=document.getElementById('acc-body'),ar=document.getElementById('acc-arrow');
+  const o=b.classList.toggle('open');ar.classList.toggle('open',o);
+}
+
+buildTable();
+document.querySelectorAll('#cap,#prazo-val,#cdi,#selic,#ipca').forEach(el=>el.addEventListener('input',calc));
+document.querySelectorAll('.taxas-grid input').forEach(el=>el.addEventListener('input',calc));
+document.getElementById('prazo-unit').addEventListener('change',calc);
+calc();
+</script>
+</body>
+</html>
